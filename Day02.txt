@@ -1,0 +1,704 @@
+-- COMMENT LINE
+/*
+a
+b
+c
+*/
+
+-- ** DECLARING VARIABLES **
+/*
+
+	$$: To be able to write some special characters without interfering with anything.
+	
+	do: Anonymous block. Making the return type void.
+
+*/
+do $$
+declare
+
+	-- variable_name  data_type  :=  assigned_value
+	-- Default Value: null
+	counter integer := 1;
+	first_name varchar(50) := 'Jace';
+	last_name varchar(50) := 'ABC';
+	payment numeric(4,2) := 20.5; -- 20.50
+	
+	/*
+			numeric(4,2):
+			Number can only contain 4 digits in total and 2 for the decimal part.
+			
+			The place where we write 4 is called (First Parameter): Presicion
+			The place where we write 2 is called (Second Parameter): Scale
+	*/
+	
+
+begin
+
+	-- System.out.println(...);
+	raise notice 'First Name: %, Last Name: %', first_name, last_name;
+
+end $$;
+
+-- TASK: Raise an output: Name LastName received 20.5 USD. --> Dynamic Values: Name, LastName, 20.5
+do $$
+declare
+
+	first_name varchar(50) = 'Jace';
+	last_name varchar(50) := 'ABC';
+	payment numeric(4,1) := 20.5;
+
+begin
+
+	raise notice '% % received % USD.', first_name, last_name, payment;
+
+end $$;
+
+-- TASK 1: Name and DifferentName got tickets for 50 Dollars --> Dynamic Values: Name, DifferentName, 50
+do $$
+declare
+	first_name varchar(50) := 'John';
+	different_name varchar(50) := 'Mark';
+	price integer := 50;
+begin
+
+	raise notice '% and % got tickets for % Dollars', first_name, different_name, price;
+end $$;
+
+-- ** SLEEP COMMAND **
+
+do $$
+declare
+
+	created_at time := now(); -- Getting the current time
+
+begin
+	
+	raise notice '%', created_at;
+	perform pg_sleep(5); -- Wait for 5 sec
+	raise notice '%', created_at;
+
+end $$;
+
+-- ** COPYING THE DATA TYPE FROM THE TABLE **
+
+do $$
+declare
+
+	movie_title movie.title%type; -- movie_title text
+
+begin
+
+	-- Get the title of the movie with ID 1, pass it into movie_title
+	SELECT title FROM movie WHERE id=1 INTO movie_title;
+	
+	raise notice 'Movie with ID 1: %', movie_title;
+	
+end $$;
+
+-- ** COPYING THE WHOLE ROW TYPE **
+do $$
+declare
+	
+	selected_actor actor%rowtype; -- Store all the row information in one variable
+	
+begin
+
+	-- Get the Actor with ID 3
+	SELECT *
+	FROM actor
+	WHERE id=3
+	INTO selected_actor;
+	
+	raise notice 'Actor: %', selected_actor;
+	raise notice 'Actor Name: % %', selected_actor.first_name, selected_actor.last_name;
+
+end $$;
+
+-- ** COPYING THE Record Type **
+-- If you don't want to get all the information, but some of them.
+do $$
+declare
+	
+	rec record; -- record is the data type
+	
+	--selected_movie movie%rowtype;
+	
+begin 
+
+	-- Selecting the movie
+	SELECT id, title, type
+	FROM movie
+	WHERE id = 1
+	INTO rec;
+	
+	raise notice '% % %', rec.id, rec.title, rec.type;
+
+end $$;
+
+-- ** NESTED BLOCKS **
+
+do $$
+<<outer_block>>
+declare -- Outer Block
+	counter integer := 0;
+begin
+
+	counter := counter + 1;
+	raise notice 'Counter: %', counter;
+	
+	declare -- Sub Block
+		counter integer := 0;
+	begin
+	
+		counter := counter + 10;
+		raise notice 'Sub Block Counter: %', counter;
+		raise notice 'While inside the SubBlock, OuterBlocks counter: %', outer_block.counter;
+	
+	end; -- End of the Sub Block
+
+end $$; -- End of the Outer Block
+
+
+-- ** CONSTANT **
+--	   final
+
+/*
+		--selling_price := 100 + 100 * 0.1;
+		--selling_price := price + price * vat;
+*/
+do $$
+declare
+	
+	vat constant numeric := 0.1;
+	price numeric := 20.5;
+	
+begin
+
+	raise notice 'Base Price: %', price;
+	raise notice 'Selling Price: %', price*(1+vat);
+	
+	--vat := 0.2;
+
+end $$;
+
+
+-- Control Structures
+
+-- ** IF Statements **
+-- syntax:
+/*
+	if condition then
+		...
+	end if;
+	------------------
+	if x<y {
+	
+	};
+	------------------
+	if not found then
+
+	end if;
+*/
+
+-- Task 1: Find the movie with ID: 10, and if not found, print a message says it's not found.
+-- not found
+do $$
+declare
+
+	selected_movie movie%rowtype;
+	
+	input_for_movie_id integer := 10;
+
+begin
+
+	SELECT * FROM movie
+	WHERE id = input_for_movie_id -- 10
+	INTO selected_movie;
+	
+	if not found then
+		raise warning 'Movie not found with id: %', input_for_movie_id;
+	end if;
+
+end $$;
+
+-- ** IF / ELSE Statements **
+/*
+		if condition then
+			...
+		else
+			...
+		end if
+*/
+-- Task 1: Find the movie with ID: 10, and if not found, print a message says it's not found.
+do $$
+declare
+	selected_movie movie%rowtype;
+	input_for_movie_id movie.id%type := 1;
+begin
+	
+	SELECT * FROM movie
+	WHERE id=input_for_movie_id
+	INTO selected_movie;
+	
+	if not found then
+		raise warning 'Movie not found with id: %', input_for_movie_id;
+	else
+		raise notice 'Movie: %', selected_movie.title;
+	end if;
+	
+end $$;
+
+-- ** IF / ELSE IF / ELSE Statements **
+
+/*
+	if condition1 then
+		...
+	elsif condition2 then
+		...
+	elsif condition3 then
+		...
+	else
+		...
+	end if;
+*/
+
+/*
+	Task 1: Try to find the movie with ID:1. If the length is less than 50, print "Short",
+	if it's between 50 and 120, print Average,
+	if it's more than 120, print Long
+*/
+
+do $$
+declare
+	
+	selected_movie movie%rowtype;
+	length_desc varchar(50);
+	selected_id movie.id%type := 35;
+	
+begin
+
+	SELECT * FROM movie
+	WHERE id= selected_id
+	INTO selected_movie;
+	
+	if not found then
+		raise warning 'Movie not found with ID: %', selected_id;
+	else
+		if selected_movie.length > 0 AND selected_movie.length <= 50 then
+			length_desc := 'Short';
+		elsif selected_movie.length > 50 and selected_movie.length <=120 then
+			length_desc := 'Average';
+		elsif selected_movie.length > 120 then
+			length_desc := 'Long';
+		else
+			length_desc := 'Movie length cannot be below zero.';
+		end if;
+		
+		raise notice '% Length: %', selected_movie.title, selected_movie.length;
+	end if;
+
+end $$;
+
+-- ** CASE Statements **
+
+/*
+
+	case expression
+		when 1 then
+			...;
+		when 2 then
+			...;
+		when 3 then
+			...;
+		else
+			...;
+	end case;
+
+*/
+
+-- Task 1: Based on the type of movie, print whether if it's okay for children or not.
+do $$
+declare
+	
+	movie_type movie.type%type; -- movie_type text
+	warn varchar(50);
+	
+begin
+
+	SELECT type FROM movie
+	WHERE id=3
+	INTO movie_type;
+	
+	if found then
+		case movie_type
+			when 'Action' then
+				warn := 'Children cannot watch it.';
+			when 'Drama' then
+				warn := 'Children can watch it with a parent.';
+			when 'Animation' then
+				warn := 'Children can watch it by themselves.';
+			else
+				warn := 'None.';
+		end case;
+		raise notice '%', warn; 
+	end if;
+end $$;
+
+/*
+Task: Get the movie count from the movie table,
+if it's less than 10, write "Not much",
+if it's more than 10, write "Too much".
+
+SELECT * FROM ...
+
+SELECT count(*) FROM ...
+*/
+
+do $$
+declare
+	movie_count integer;
+	warn varchar(50);	
+begin
+	SELECT count(*) FROM movie INTO movie_count;	
+	/*
+	if movie_count<10 then
+		warn := 'NOT MUCH';
+	elsif movie_count>10 then -- else if --> elsif
+		warn := 'TOO MUCH';
+	else
+		warn := 'None.';
+	end if;
+	raise notice '%', warn;
+	*/
+	case movie_count
+		when movie_count<10 then
+			warn := 'NOT MUCH';
+	end case;
+	raise notice '%', warn;
+	
+end $$;
+
+-- ** WHILE LOOP **
+
+/*
+	while condition loop
+		...
+	end loop;
+*/
+
+-- Print values from 1 to 4.
+do $$
+declare
+
+	n integer :=5;
+	counter integer := 1;
+
+begin
+
+	while counter<n loop
+		raise notice '%', counter;
+		counter := counter+1;
+	end loop;
+	
+	-- Second Option
+	while counter < 5 loop
+		raise notice '%', counter;
+		counter := counter+1;
+	end loop;
+
+end $$;
+
+-- ** FOR LOOP **
+
+/*
+	for loop_counter in from..to loop
+		...
+	end loop;
+	
+	for (int i=0; )
+*/
+
+do $$
+begin
+
+	for counter in 1..10 loop
+		raise notice '%', counter;
+	end loop;
+
+end $$;
+
+-- Reversed
+do $$
+begin
+
+	for counter in reverse 10..1 loop
+		raise notice '%', counter;
+	end loop;
+
+end $$;
+
+-- by
+do $$
+begin
+
+	for counter in 1..10 by 2 loop
+		raise notice '%', counter;
+	end loop;
+
+end $$;
+
+-- Task: Create an array, print the elements of it -- More like foreach!
+do $$
+declare
+
+	array_int int[] := array[1,22,5,6,2,6,7,9];
+	var int[];
+
+begin
+
+	for var in SELECT array_int loop
+		raise notice '%', var[2];
+	end loop;
+	
+end $$;
+
+-- ** LOOP **
+
+do $$
+declare
+
+	counter integer := 0;
+
+begin
+
+	loop
+		raise notice '%',counter;
+		counter := counter+1;
+		EXIT WHEN counter = 5;
+	end loop;
+
+
+end $$;
+
+
+-- ** Using the loop for DB **
+
+
+-- Task: Show the longest two movies
+do $$
+declare
+
+	r record;
+
+begin
+
+	for r in SELECT title, length FROM movie ORDER BY length DESC LIMIT 2 loop
+		raise notice '%: %', r.title, r.length;
+	end loop;
+
+end $$;
+
+--
+--
+
+CREATE TABLE employees (
+  employee_id serial PRIMARY KEY,
+  full_name VARCHAR NOT NULL,
+  manager_id INT
+);
+
+INSERT INTO employees (
+  employee_id,
+  full_name,
+  manager_id
+)
+VALUES
+  (1, 'M.S Dhoni', NULL),
+  (2, 'Sachin Tendulkar', 1),
+  (3, 'R. Sharma', 1),
+  (4, 'S. Raina', 1),
+  (5, 'B. Kumar', 1),
+  (6, 'Y. Singh', 2),
+  (7, 'Virender Sehwag', 2),
+  (8, 'Ajinkya Rahane', 2),
+  (9, 'Shikhar Dhawan', 2),
+  (10, 'Mohammed Shami', 3),
+  (11, 'Shreyas Iyer', 3),
+  (12, 'Mayank Agarwal', 3),
+  (13, 'K. L. Rahul', 3),
+  (14, 'Hardik Pandya', 4),
+  (15, 'Dinesh Karthik', 4),
+  (16, 'Jasprit Bumrah', 7),
+  (17, 'Kuldeep Yadav', 7),
+  (18, 'Yuzvendra Chahal', 8),
+  (19, 'Rishabh Pant', 8),
+  (20, 'Sanju Samson', 8);
+
+-- Task: Find the first 10 people whose id are the biggest
+do $$
+declare
+
+	rec record;
+	
+	employee employees%rowtype;
+
+begin
+	
+	for rec in SELECT employee_id, full_name FROM employees ORDER BY employee_id DESC LIMIT 10 loop
+		raise notice '%, %', rec.employee_id, rec.full_name;
+	end loop;
+	
+	-- Second Way
+	for employee in SELECT * FROM employees ORDER BY employee_id DESC LIMIT 10 loop
+		raise notice '%, %', employee.employee_id, employee.full_name;
+	end loop;
+
+end $$;
+
+
+-- ** CONTINUE **
+-- To basically skip the current iteration
+/*
+		continue loop_label when condition
+*/
+
+-- Task: Print numbers from 1 to 10.
+
+do $$
+declare
+	
+	counter integer := 0;
+	
+begin
+
+	loop
+		counter := counter+1;
+		exit when counter > 10;
+		
+		continue when mod(counter, 2)=0; -- If the counter is even, skip that iteration
+		
+		raise notice '%', counter;
+	end loop;
+
+end $$;
+
+-- ** FUNCTIONS **
+
+/*
+	create/replace function func_name(parameters)
+	returns return_type
+	language plpgsql
+	as
+	$$
+	declare
+		...
+	begin
+		...
+	end $$;
+		
+*/
+
+-- Create a function that gets the movie count
+
+create function get_movie_count(len_from int, len_to int)
+returns int
+language plpgsql
+as
+	$$
+	declare
+		movie_count integer;
+	begin
+		
+		SELECT count(*) FROM movie
+		WHERE length between len_from and len_to
+		INTO movie_count;
+		
+		return movie_count;
+		
+	end $$;
+	
+-- Let's use that function!
+
+-- 1st way
+select get_movie_count(40, 90);
+
+-- 2.
+select get_movie_count(
+	len_from => 40,
+	len_to => 90
+);
+
+-- 3.
+select get_movie_count(
+	len_from := 40,
+	len_to := 90
+);
+
+-- 4. Mixed Notation
+select get_movie_count(40, len_to => 90);
+
+-- NOTE: This will throw you an error. You cannot have the parameter name in the beginning.
+select get_movie_count(len_from => 40, 90);
+
+SELECT min(length) from movie;
+SELECT MAX(length) from movie;
+select AVG(length) from movie;
+
+-- Task: Create a sum (add), parameters: number1, number2.
+create function sum_numbers(number1 int, number2 int)
+returns integer
+language plpgsql
+as
+	$$
+	declare
+		result integer;
+	begin
+		result := number1+number2;
+		return result;
+	end $$;
+	
+select sum_numbers(10, 5);
+
+
+-- **** TASKS ****
+
+/*
+		Task 1: Create two variables with some numbers assigned to them,
+		if one is bigger than another, write a message for that.
+*/
+
+do $$
+declare
+
+	num1 integer := 11;
+	num2 integer := 15;
+
+begin
+
+	if num1>num2 then
+		raise notice '% is greater than %', num1, num2;
+	elsif num2>num1 then
+		raise notice '% is greater than %', num2, num1;
+	else
+		raise notice '% and % are equal!', num1, num2;
+	end if;
+	
+	-- Other way
+	if num1>num2 then
+		raise notice '% is greater than %', num1, num2;
+	end if;
+	if num2>num1 then
+		raise notice '% is greater than %', num2, num1;
+	end if;
+	if num1=num2 then
+		raise notice '% and % are equal!', num1, num2;
+	end if;
+
+end $$;
+
+
+
+
+
+
+

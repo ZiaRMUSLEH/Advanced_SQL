@@ -1,0 +1,245 @@
+--Task 1 : create table student with 3 filed first_name,last_name and age
+--and insert new student into table .
+-- 1 way :
+	-- Create the "student" table
+	CREATE TABLE student (
+		student_id serial,
+		first_name text,
+		last_name text,
+		age integer
+	);
+	-- Insert a new student into the "student" table
+	INSERT INTO student (first_name, last_name, age)
+	VALUES ('John', 'Doe', 20);
+	
+do $$
+declare
+	new_student_id integer;
+	first_name varchar(25);
+	last_name varchar(25);
+	age integer;
+	
+begin
+	first_name:='John';
+	last_name:='Doe';
+	age:=21;
+	
+	INSERT INTO student(first_name, last_name,age )
+	VALUES (first_name, last_name,age)
+	RETURNING student_id INTO new_student_id;
+	RAISE NOTICE 'new student inserted with id: %',new_student_id;
+	
+end $$
+--Task 2: Type code to  print this message one the console .
+	--NOTICE:  Delaying for 7 seconds.
+	--NOTICE:  Delay completed.
+DO $$
+DECLARE
+ 	delay_second integer:=7;
+BEGIN
+	RAISE NOTICE 'Delaying for % seconds',
+	delay_second;
+	
+	PERFORM pg_sleep(delay_second);
+	RAISE NOTICE 'Delay completed.';
+END $$
+--Task 3: Type  code to  calculates and prints the time elapsed between the start of a task (after a 10-second delay)
+--and the completion of the task.
+DO $$
+DECLARE
+    start_time timestamp := clock_timestamp();
+BEGIN
+    RAISE NOTICE 'Starting at: %', start_time;
+    -- Perform some time-consuming task
+    PERFORM pg_sleep(10); -- Simulate a 10-second task
+    RAISE NOTICE 'Task completed.';
+    -- Calculate time elapsed
+    RAISE NOTICE 'Time elapsed: % seconds',
+	extract(epoch from clock_timestamp() - start_time);
+END;
+$$ LANGUAGE plpgsql;
+--task 4: type to print student first name with id = 1
+DO $$
+DECLARE
+	student_name student.first_name%type;
+BEGIN
+	SELECT first_name
+	INTO student_name
+	FROM student
+	WHERE student_id =2;
+	
+	RAISE NOTICE 'Student first name with id 1 is :%' ,student_name;
+END $$;
+-- Task 5: Type code to print the student name and age with id 2 :
+do $$
+declare
+	student_name student.first_name%type;
+	student_age student.age%type;
+	
+begin
+	SELECT first_name, age
+	FROM student
+	WHERE student_id=2
+	INTO student_name, student_age;
+	
+	RAISE NOTICE 'Student with name % and age %',student_name, student_age;
+	
+end $$ ;
+--Task 6 :  Type code to get the student info wtih id 1 (use ROWTYPE)
+DO $$
+DECLARE
+	select_student student%rowType;
+BEGIN
+	SELECT *
+	INTO select_student
+	FROM student
+	WHERE student_id =1;
+	
+	RAISE NOTICE 'Student inforamtion with id 1: FullName : % % ,Age : %',
+			select_student.first_name,
+			select_student.last_name,
+			select_student.age;
+END $$
+--Task 7 :  Type code to get the student info wtih id 1 (use RECORD)
+DO $$
+DECLARE
+	rec record;
+BEGIN
+	SELECT first_name, last_name, age
+	FROM student WHERE student_id = 1
+	INTO rec;
+	RAISE NOTICE 'Full Name: % % Age: %',
+	rec.first_name, rec.last_name,rec.age;
+END $$
+--Task 9 type code to print if the student_score range(0-100).
+	--Check if the student score is within the allowed range
+		--for 75 : Student score is valid
+		-- for -78 : Student score is not within the valid range
+DO $$
+DECLARE
+	MAX_SCORE CONSTANT integer :=100;
+	MIN_SCORE CONSTANT integer :=0;
+	
+	student_score integer  :=-78;
+BEGIN
+	RAISE NOTICE 'Student score : %',student_score;
+	
+	IF student_score >=MIN_SCORE AND student_score<= MAX_SCORE THEN
+	RAISE NOTICE 'Student score is valid';
+	ELSE
+	RAISE NOTICE 'Student score is not within the valid range ';
+	END IF;
+	
+END $$;
+CREATE TABLE actor (
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    age INT,
+    salary DECIMAL(10, 2)
+);
+INSERT INTO actor (first_name, last_name, age, salary) VALUES
+    ('Tom', 'Hanks', 65, 2000000.00),
+    ('Meryl', 'Streep', 72, 3000000.00),
+    ('Brad', 'Pitt', 58, 2500000.00),
+    ('Angelina', 'Jolie', 46, 3500000.00),
+    ('Leonardo', 'DiCaprio', 47, 2200000.00),
+    ('Julia', 'Roberts', 54, 2800000.00),
+    ('Denzel', 'Washington', 66, 2800000.00),
+    ('Jennifer', 'Aniston', 52, 2800000.00),
+    ('Johnny', 'Depp', 58, 2400000.00),
+    ('Nicole', 'Kidman', 54, 3200000.00),
+    ('Chris', 'Hemsworth', 38, 2800000.00),
+    ('Scarlett', 'Johansson', 37, 2800000.00),
+    ('Robert', 'Downey Jr.', 56, 3500000.00),
+    ('Natalie', 'Portman', 40, 3200000.00),
+    ('Will', 'Smith', 53, 3500000.00),
+    ('Charlize', 'Theron', 46, 3200000.00),
+    ('Chris', 'Evans', 40, 2500000.00),
+    ('Anne', 'Hathaway', 39, 2800000.00);
+--Task 10:
+  -- Find actor  with id 4 and if there is no actor  found ,print notifaction message ;
+DO $$
+	
+DECLARE
+	selected_actor actor%rowtype;
+	input_acotr_id actor.id%type:=100;
+BEGIN
+	    SELECT * FROM  actor
+		INTO selected_actor
+		WHERE id =input_acotr_id;
+		IF NOT FOUND THEN
+			RAISE NOTICE 'No Actor Found with Id : %',input_acotr_id;
+		ELSE
+			RAISE NOTICE 'Actor Found with Id : %',input_acotr_id;
+		END IF;
+END $$;
+--task 11 :
+-- print actor deatils  with id 2, if there is no actor found print No actor found with ID:
+DO $$
+	
+DECLARE
+	actor_id actor.id%type :=5;
+	actor_rcord actor%rowType;
+	
+BEGIN
+	SELECT * FROM actor
+	INTO actor_rcord
+	WHERE id=actor_id;
+	
+	IF NOT FOUND THEN
+		RAISE NOTICE 'No actor found with ID %',actor_id;
+	ELSE
+		RAISE NOTICE 'Actor found with ID %',actor_id;
+		RAISE NOTICE 'Actor Deatils : ID=%  ,First Name =% Last Name =% , Age =% , Salary =%',
+				actor_rcord.id,
+				actor_rcord.first_name,
+				actor_rcord.last_name,
+				actor_rcord.age,
+				actor_rcord.salary;
+	END IF;
+END $$
+/*
+ checks the number of actors in the "actor" table based on their age.
+ If the number of actors is less than 10, it prints 'Less number of actors,'
+ and if it's 10 or more, it prints 'Enough number of actors.
+*/-- age 25
+DO $$
+DECLARE
+	actor_count INT;-- count to count the number of actor
+	min_actor INT :=10;-- set minmum nmuber of actor;
+	min_age INT :=50; -- set minimum age
+BEGIN
+	
+	SELECT COUNT(*) INTO actor_count FROM actor WHERE age >=min_age;
+	
+	IF actor_count <min_actor THEN
+		RAISE NOTICE 'Less Number of Actor with age >= % %',min_age,actor_count;
+	ELSE
+		RAISE NOTICE 'Enough Number of Actor with age >= % %',min_age,actor_count;
+	END IF;
+END $$;
+--Task 12 :
+--Type code use  CASE statement to categorize actors in the "actor" table based on their age group
+--and displays the actor's name, age, and category:
+-- If age less then min age print "Young"
+--if if age greater then or equal to min age and less then or equal to Max age print "Adult"
+-- for other age print "Senior"
+
+do $$
+declare
+	 ac actor%rowtype;
+	 ag actor.age%type;
+	 ac_id actor.id%type = 15;
+begin
+	select * from actor where id = ac_id into ac;
+	ag=ac.age;
+	case 
+	when ag<25 then
+	raise notice 'Full Name: % %, Age: %, Category: Young', ac.first_Name, ac.last_Name, ag;
+	when 25<=ag and ag<=35 then
+	raise notice 'Full Name: % %, Age: %, Category: Adult', ac.first_Name, ac.last_Name, ag;
+	when ag>35 then
+	raise notice 'Full Name: % %, Age: %, Category: Senior', ac.first_Name, ac.last_Name, ag;
+	end case;
+end $$
